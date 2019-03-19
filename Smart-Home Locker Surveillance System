@@ -1,0 +1,372 @@
+#include<pic.h>
+#include<stdio.h>
+#include<string.h>
+#define _XTAL_FREQ 10000000
+#include"lcd.h"
+#include"Serial.h"
+#include"EEPROM.h"
+
+#define rs RE2
+#define rw RE1
+#define en RE0
+#define lcd PORTD
+#define step1 RC0
+#define step2 RC1
+#define step3 RC2
+#define step4 RC3
+#define echopin RB1
+#define trigpin RB0
+#define buzzer RB7
+#define sw RB2
+#define motor RB6
+
+long increment=0,duration=0;
+void cmd(unsigned char a )
+ {
+    lcd=a; 
+    rs=0;
+    en=1;
+__delay_ms(5);
+    en=0;
+    
+     }
+
+void data(unsigned char b)
+{
+    lcd=b;
+    rs=1;
+    en=1;
+__delay_ms(5);
+    en=0;
+
+}
+
+void lcd_ini()
+{
+cmd(0x38);
+cmd(0x0c);
+cmd(0x01);
+cmd(0x06);
+cmd(0x80);
+}
+
+void group(unsigned char *c)
+{
+int i=0;
+while(c[i]!='\0')
+{
+data(c[i]);
+i++;
+}
+}
+
+void Sms()
+{
+Group_Transmit("AT"); 
+Transmit(0x0d);Transmit(0x0a);
+Transmit(0x0d);Transmit(0x0a);
+__delay_ms(500);
+Group_Transmit("AT+CMGF=1"); 
+Transmit(0x0d);Transmit(0x0a);
+Group_Transmit("AT+CMGS=\"9042047829\""); 
+Transmit(0x0d);Transmit(0x0a);
+__delay_ms(500);
+Group_Transmit("AT+CMGS=\"9042047829\""); 
+Transmit(0x0d);Transmit(0x0a);
+__delay_ms(500);
+Transmit(0x0d);Transmit(0x0a);
+__delay_ms(500);
+Group_Transmit("Unauthorized person entered in the room..."); 
+Transmit(0x0d);Transmit(0x0a);
+__delay_ms(500);
+Transmit(0x1a);
+}
+
+int ultrasonic()
+{
+	increment=0,duration=0;
+       trigpin=0;
+       __delay_us(2);
+       trigpin=1;
+        __delay_us(10);
+       trigpin=0;
+       for(;increment<=11999;increment++)
+      {
+       if(echopin==1)
+      {
+        duration++;
+      } 
+       __delay_us(5);
+      } 
+       duration=duration*5;
+       return  (((duration / 2) / 29.1)*10);
+}
+
+void cw()
+  {  
+       step1=0;
+       step2=0;
+       step3=0;
+       step4=1;
+       __delay_ms(5);
+       step1=0;
+       step2=0;
+       step3=1;
+       step4=1;
+       __delay_ms(5);
+       step1=0;
+       step2=0;
+       step3=1;
+       step4=0;
+       __delay_ms(5);
+       step1=0;
+       step2=1;
+       step3=1;
+       step4=0;
+       __delay_ms(5);
+       step1=0;
+       step2=1;
+       step3=0;
+       step4=0;
+       __delay_ms(5);
+       step1=1; 
+       step2=1;
+       step3=0;
+       step4=0;
+       __delay_ms(5);
+       step1=1; 
+       step2=0;
+       step3=0;
+       step4=0;
+       __delay_ms(5);
+       step1=1; 
+       step2=0;
+       step3=0;
+       step4=1;
+       __delay_ms(5);
+    
+}
+
+void acw()
+  {  
+       step1=1; 
+       step2=0;
+       step3=0;
+       step4=1;
+       __delay_ms(5);
+       step1=1; 
+       step2=0;
+       step3=0;
+       step4=0;
+       __delay_ms(5);
+       step1=1; 
+       step2=1;
+       step3=0;
+       step4=0;
+       __delay_ms(5);
+       step1=0;
+       step2=1;
+       step3=0;
+       step4=0;
+       __delay_ms(5);
+       step1=0;
+       step2=1;
+       step3=1;
+       step4=0;
+       __delay_ms(5);
+       step1=0;
+       step2=0;
+       step3=1;
+       step4=0;
+       __delay_ms(5);
+       step1=0;
+       step2=0;
+       step3=1;
+       step4=1;
+       __delay_ms(5);
+       step1=0;
+       step2=0;
+       step3=0;
+       step4=1;
+       __delay_ms(5);
+} 
+
+int main()
+{
+
+	OPTION_REG=0;
+	ADCON1=0x82;
+	TRISD=0x00;
+	TRISE=0x00;
+	TRISB0=0;
+	TRISB1=1;
+	TRISB6=0;
+	TRISB7=0;
+	TRISC0=0;
+	TRISC1=0;
+	TRISC2=0;
+	TRISC3=0;
+   	    PORTB=0;
+       PORTC=0;
+       PORTE=0;
+       PORTD=0;
+	Serial_Init();
+	Lcd_Init();
+
+
+if(sw==1)
+{
+	while(1)
+	{
+
+          int distance=0;
+       	int i=0,value1=0,value2=0,value3=0,value4=0;
+	    int write1=0,write2=0,write3=0,write4=0;
+          char m2[3];
+	    char z[3],y[3],x[3],w[1];
+		y[0]=EEPROM_Read(0);
+		y[1]=EEPROM_Read(1);
+		y[2]=EEPROM_Read(2);
+		if(y[0]!='\0')
+		{
+		value1=y[0]-'0';
+		}
+		if(y[1]!='\0')
+		{
+		value2=y[1]-'0';
+		}
+		if(y[2]!='\0')
+		{
+		value3=y[2]-'0';
+		}
+		if(y[1]!='\0' && y[2]!='\0' && y[0]!='\0')
+		{
+		value4=(value1*100)+(value2*10)+value3;
+		}
+		else if(y[2]=='\0')
+		{
+		value4=(value1*10)+value2;
+		}
+		else
+		{
+		value4=value1;
+		}
+		if(EEPROM_Read(3)=='0')
+		{
+		for(int i=value4;i<=511;i++)
+		{
+             distance = ultrasonic();
+		sprintf(m2,"%3d",distance);
+		cmd(0x80);
+             cmd(0x01);
+		group("DIS: ");
+		cmd(0x84);
+		group(m2);
+		cw(); 
+		//  Serial.println(distance);
+		if(distance<50)
+		{
+		   buzzer=1;
+                 motor=1;
+                Sms();
+		    cmd(0xc0);
+		    cmd(0x01);
+		    group("person detected");
+                 __delay_ms(1000);
+		} 
+		else
+		{
+		   buzzer=0;
+                motor=0;
+		}
+		write1=i;
+		write2=(write1/100);
+		write3=(write1/10);
+		write3=(write3%10);
+		write4=(write1%10);
+		if(write4!=0 && write3!=0 && write2!=0)
+		{
+		  x[0]=write2+'0';
+		  x[1]=write3+'0';
+		  x[2]=write4+'0';
+		}
+		else if(write2==0 && write3==0)
+		{
+		  x[0]=write4+'0';
+		  x[1]=write3+'\0';
+		  x[2]=write2+'\0';
+		}
+		else if(write2==0)
+		{
+		  x[0]=write3+'0';
+		  x[1]=write4+'0';
+		  x[2]=write2+'\0';
+		}
+		EEPROM_Write(0,x[0]);
+		EEPROM_Write(1,x[1]);
+		EEPROM_Write(2,x[2]);
+		EEPROM_Write(3,'0'); 
+		}
+		EEPROM_Write(3,'1');
+		}
+		else
+		{
+		for(int i=value4;i>=0;i--)
+		{
+             distance = ultrasonic();
+		sprintf(m2,"%3d",distance);
+		cmd(0x80);
+		cmd(0x01);
+		group("DIS: ");
+		cmd(0x85);
+		group(m2);
+		acw(); 
+		// Serial.println(distance);
+		if(distance<50)
+		{
+		   buzzer=1;
+                motor=1;
+               Sms();
+		    cmd(0xc0);
+		    cmd(0x01);
+		    group("person detected");
+__delay_ms(5000);
+		}
+		else
+		{
+		   buzzer=0;
+               motor=0;
+		} 
+		write1=i;
+		write2=(write1/100);
+		write3=(write1/10);
+		write3=(write3%10);
+		write4=(write1%10);
+		if(write4!=0 && write3!=0 && write2!=0)
+		{
+		  x[0]=write2+'0';
+		  x[1]=write3+'0';
+		  x[2]=write4+'0';
+		}
+		else if(write2==0 && write3==0)
+		{
+		  x[0]=write4+'0';
+		  x[1]=write3+'\0';
+		  x[2]=write2+'\0';
+		}
+		else if(write2==0)
+		{
+		  x[0]=write3+'0';
+		  x[1]=write4+'0';
+		  x[2]=write2+'\0';
+		}
+		EEPROM_Write(0,x[0]);
+		EEPROM_Write(1,x[1]);
+		EEPROM_Write(2,x[2]);
+		EEPROM_Write(3,'1');
+		}
+		EEPROM_Write(3,'0');
+		}		
+	}
+}
+}	
